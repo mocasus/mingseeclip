@@ -1,0 +1,30 @@
+{
+  "services": [
+    {
+      "id": "1",
+      "name": "Jasa Scan Wechat",
+      "price": "20K",
+      "description": "1 jam-an"
+    },
+    {
+      "id": "2",
+      "name": "Jasa Scan Wechat",
+      "price": "25K",
+      "description": "5 menit"
+    },
+    {
+      "id": "3",
+      "name": "Akun Wechat",
+      "price": "55K",
+      "description": "Ready (siap pakai)"
+    }
+  ],
+  "testimonials": [],
+  "payment": {
+    "qris_url": "/qris.jpg"
+  },
+  "stats": {
+    "orderCount": 150,
+    "lastOrderTikTok": "@user123"
+  }
+}
