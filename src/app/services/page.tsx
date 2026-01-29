@@ -1,8 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ShieldCheck, Zap, X, ShoppingCart } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Zap, X, ShoppingCart, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface Service {
   id: string;
@@ -16,55 +17,39 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [tiktokAccount, setTiktokAccount] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/data')
       .then(res => res.json())
-      .then(data => setServices(data.services));
+      .then(data => {
+        setServices(data.services);
+        setIsLoading(false);
+      });
   }, []);
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
 
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsOrdering(true);
 
     try {
-      const res = await fetch('/api/data');
-      const data = await res.json();
-
-      const newData = {
-        ...data,
-        stats: {
-          orderCount: (data.stats?.orderCount || 0) + 1,
-          lastOrderTikTok: tiktokAccount || '@anonymous'
-        }
-      };
-
-      await fetch('/api/data', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newData),
+        body: JSON.stringify({ tiktokAccount }),
       });
 
-      alert('Order berhasil dikirim! Silakan lanjut ke Payment.');
+      if (!res.ok) throw new Error('Gagal memproses order');
+
+      toast.success('Order Berhasil!', {
+        description: 'Detail pesanan Anda telah dicatat. Silakan lakukan pembayaran.',
+      });
       setSelectedService(null);
       setTiktokAccount('');
     } catch (err) {
       console.error(err);
+      toast.error('Gagal memproses order.');
     } finally {
       setIsOrdering(false);
     }
@@ -96,7 +81,18 @@ export default function ServicesPage() {
         <div
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {services.map((service, index) => (
+          {isLoading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="bg-dark-card border border-white/5 rounded-3xl p-8 h-80 animate-pulse flex flex-col justify-between">
+                <div className="w-16 h-16 bg-white/5 rounded-2xl" />
+                <div className="space-y-4">
+                  <div className="h-6 bg-white/5 rounded-full w-3/4" />
+                  <div className="h-4 bg-white/5 rounded-full w-1/2" />
+                </div>
+                <div className="h-12 bg-white/5 rounded-xl" />
+              </div>
+            ))
+          ) : services.map((service, index) => (
             <motion.div
               key={service.id}
               initial={{ opacity: 0, y: 20 }}
@@ -129,6 +125,47 @@ export default function ServicesPage() {
               </button>
             </motion.div>
           ))}
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-32 max-w-3xl mx-auto">
+           <div className="text-center mb-12">
+              <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter">FREQUENTLY ASKED <span className="text-neon-green">QUESTIONS</span></h2>
+              <p className="text-neutral-500 text-sm italic">Punya pertanyaan? Cek di bawah ini dulu ya!</p>
+           </div>
+
+           <div className="space-y-4">
+              {[
+                { q: "Apakah jasa ini aman untuk akun saya?", a: "Sangat aman! Kami menggunakan metode resmi dan tidak memerlukan password akun WeChat Anda." },
+                { q: "Berapa lama proses scan WeChat?", a: "Tergantung pilihan Anda. Ada yang express (5 menit) dan ada yang reguler (sekitar 1 jam)." },
+                { q: "Bagaimana jika scan gagal?", a: "Kami memberikan garansi scan ulang sampai berhasil atau uang kembali jika memang tidak bisa diproses." },
+                { q: "Apakah akun WeChat ready sudah termasuk nomor HP?", a: "Ya, akun sudah siap pakai dan akan diberikan detail login lengkapnya." }
+              ].map((faq, i) => (
+                <div key={i} className="border border-white/5 rounded-2xl bg-dark-card overflow-hidden">
+                   <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                   >
+                      <span className="text-white font-bold text-left text-sm">{faq.q}</span>
+                      <ChevronDown className={`text-neon-green transition-transform ${openFaq === i ? 'rotate-180' : ''}`} size={18} />
+                   </button>
+                   <AnimatePresence>
+                      {openFaq === i && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                           <div className="px-6 pb-5 text-neutral-500 text-sm leading-relaxed border-t border-white/5 pt-4">
+                              {faq.a}
+                           </div>
+                        </motion.div>
+                      )}
+                   </AnimatePresence>
+                </div>
+              ))}
+           </div>
         </div>
       </div>
 

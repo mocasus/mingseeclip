@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { QrCode, Download, ShieldCheck } from 'lucide-react';
+import { QrCode, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 

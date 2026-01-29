@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
-
-const ADMIN_PASSWORD = '258000';
+import { ADMIN_PASSWORD } from '@/lib/constants';
 
 export async function POST(request: Request) {
   const auth = request.headers.get('x-admin-password');
@@ -21,12 +20,20 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
 
     const fileName = `${Date.now()}-${file.name}`;
-    const uploadPath = path.join(process.cwd(), 'public/uploads', fileName);
+    const uploadDir = path.join(process.cwd(), 'public/uploads');
+    const uploadPath = path.join(uploadDir, fileName);
+
+    // Ensure directory exists
+    try {
+      await fs.access(uploadDir);
+    } catch {
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
 
     await fs.writeFile(uploadPath, buffer);
 
     return NextResponse.json({ url: `/uploads/${fileName}` });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }

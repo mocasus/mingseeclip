@@ -16,6 +16,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface Service {
   id: string;
@@ -29,11 +30,18 @@ interface Testimonial {
   imageUrl: string;
 }
 
+interface StoreData {
+  services: Service[];
+  testimonials: Testimonial[];
+  payment: { qris_url: string };
+  stats?: { orderCount: number; lastOrderTikTok: string };
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<StoreData | null>(null);
   const [activeTab, setActiveTab] = useState('services');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,9 +57,15 @@ export default function AdminPage() {
     setData(d);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '258000') {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+
+    if (res.ok) {
       setIsLoggedIn(true);
       setError('');
     } else {
@@ -59,7 +73,8 @@ export default function AdminPage() {
     }
   };
 
-  const saveData = async (newData = data) => {
+  const saveData = async (newData: StoreData | null = data) => {
+    if (!newData) return;
     setIsSaving(true);
     await fetch('/api/data', {
       method: 'POST',
@@ -71,9 +86,11 @@ export default function AdminPage() {
     });
     setData({ ...newData });
     setIsSaving(false);
+    toast.success('Perubahan Berhasil Disimpan!');
   };
 
   const addService = () => {
+    if (!data) return;
     const newService = {
       id: Date.now().toString(),
       name: 'Jasa Baru',
@@ -85,6 +102,7 @@ export default function AdminPage() {
   };
 
   const updateService = (id: string, field: string, value: string) => {
+    if (!data) return;
     const updatedServices = data.services.map((s: Service) =>
       s.id === id ? { ...s, [field]: value } : s
     );
@@ -92,11 +110,13 @@ export default function AdminPage() {
   };
 
   const deleteService = (id: string) => {
+    if (!data) return;
     const newData = { ...data, services: data.services.filter((s: Service) => s.id !== id) };
     saveData(newData);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'testimonial' | 'qris') => {
+    if (!data) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -117,14 +137,19 @@ export default function AdminPage() {
         const newTesti = { id: Date.now().toString(), imageUrl: result.url };
         const newData = { ...data, testimonials: [...(data.testimonials || []), newTesti] };
         saveData(newData);
+        toast.success('Testimoni Berhasil Diupload!');
       } else {
         const newData = { ...data, payment: { ...data.payment, qris_url: result.url } };
         saveData(newData);
+        toast.success('QRIS Berhasil Diperbarui!');
       }
+    } else {
+      toast.error('Gagal mengupload file.');
     }
   };
 
   const deleteTestimonial = (id: string) => {
+    if (!data) return;
     const newData = { ...data, testimonials: data.testimonials.filter((t: Testimonial) => t.id !== id) };
     saveData(newData);
   };
@@ -310,7 +335,7 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {(data.testimonials || []).map((t: Testimonial) => (
                     <div key={t.id} className="relative group aspect-[3/4] rounded-xl overflow-hidden border border-white/5">
-                      <img src={t.imageUrl} className="w-full h-full object-cover" />
+                      <img src={t.imageUrl} className="w-full h-full object-cover" alt="Testimonial" />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                         <button
                           onClick={() => deleteTestimonial(t.id)}
@@ -337,7 +362,7 @@ export default function AdminPage() {
                   <h3 className="text-xl font-bold mb-6">QRIS Code</h3>
                   <div className="bg-white p-4 rounded-xl mb-6 mx-auto w-48 h-64 flex items-center justify-center overflow-hidden">
                     {data.payment?.qris_url ? (
-                      <img src={data.payment.qris_url} className="max-w-full max-h-full object-contain" />
+                      <img src={data.payment.qris_url} className="max-w-full max-h-full object-contain" alt="QRIS" />
                     ) : (
                       <ImageIcon className="text-neutral-200 w-12 h-12" />
                     )}
